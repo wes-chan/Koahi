@@ -1,15 +1,15 @@
 import "server-only";
 
 type EbayItemSummary = {
-  itemID: string;
+  itemId: string;
   title: string;
-  price: {value: string; currency: string};
+  price: { value: string; currency: string };
   itemWebUrl: string;
-}
+};
 
 type EbaySearchResponse = {
   itemSummaries?: EbayItemSummary[];
-}
+};
 
 async function getToken() {
   const auth = Buffer.from(
@@ -29,7 +29,8 @@ async function getToken() {
     }),
   });
 
-  if (!res.ok) throw new Error(`eBay token failed: ${res.status} ${await res.text()}`);
+  if (!res.ok)
+    throw new Error(`eBay token failed: ${res.status} ${await res.text()}`);
   const data = await res.json();
   return data.access_token as string;
 }
@@ -39,7 +40,7 @@ export async function searchEbay(query: string, maxPrice: number) {
 
   const params = new URLSearchParams({
     q: query,
-    filter: `price:[..${maxPrice}],priceCurrency:AUD,buyingOptions:{FIXED_PRICE},itemLocationCountry:AU`,
+    filter: `price:[..${maxPrice}],priceCurrency:AUD,buyingOptions:{FIXED_PRICE},deliveryCountry:AU`,
     sort: "newlyListed",
     limit: "16",
   });
@@ -60,7 +61,7 @@ export async function searchEbay(query: string, maxPrice: number) {
   const data: EbaySearchResponse = await res.json();
 
   return (data.itemSummaries ?? []).map((item) => ({
-    itemId: item.itemID,
+    itemId: item.itemId,
     title: item.title,
     price: Number(item.price.value),
     url: item.itemWebUrl,
