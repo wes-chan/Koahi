@@ -5,13 +5,15 @@ type EbayItemSummary = {
   title: string;
   price: { value: string; currency: string };
   itemWebUrl: string;
-  image?: { imageUrl: string};
-  shippingOptions?: { shippingCost?: { value: string } } [];
+  image?: { imageUrl: string };
+  shippingOptions?: { shippingCost?: { value: string } }[];
 };
 
 type EbaySearchResponse = {
   itemSummaries?: EbayItemSummary[];
 };
+
+const bannedWord = ["custom", "proxy", "replica", "orica", "fake"];
 
 async function getToken() {
   const auth = Buffer.from(
@@ -39,10 +41,11 @@ async function getToken() {
 
 export async function searchEbay(query: string, maxPrice: number) {
   const token = await getToken();
+  const exclude = bannedWord.map((word) => `-${word}`).join(" ");
 
   const params = new URLSearchParams({
-    q: query,
-    filter: `price:[..${maxPrice}],priceCurrency:AUD,buyingOptions:{FIXED_PRICE},deliveryCountry:AU`,
+    q: `${query} ${exclude}`,
+    filter: `price:[..${maxPrice}],priceCurrency:AUD,buyingOptions:{FIXED_PRICE},deliveryCountry:AU,itemLocationCountry:AU`,
     sort: "newlyListed",
     limit: "16",
   });
@@ -53,7 +56,7 @@ export async function searchEbay(query: string, maxPrice: number) {
       headers: {
         Authorization: `Bearer ${token}`,
         "X-EBAY-C-MARKETPLACE-ID": "EBAY_AU",
-        "X-EBAY-C-ENDUSERCTX": `contextualLocation=country=AU,zip=${process.env.POSTCODE}`
+        "X-EBAY-C-ENDUSERCTX": `contextualLocation=country=AU,zip=${process.env.POSTCODE}`,
       },
     },
   );
@@ -69,6 +72,8 @@ export async function searchEbay(query: string, maxPrice: number) {
     price: Number(item.price.value),
     url: item.itemWebUrl,
     imageUrl: item.image?.imageUrl,
-    shipping: item.shippingOptions?.[0]?.shippingCost ? Number(item.shippingOptions[0].shippingCost.value) : undefined,
+    shipping: item.shippingOptions?.[0]?.shippingCost
+      ? Number(item.shippingOptions[0].shippingCost.value)
+      : undefined,
   }));
 }

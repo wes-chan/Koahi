@@ -52,6 +52,8 @@ export async function GET(req: NextRequest) {
       }
 
       const underBy = target - total;
+      const shippingText =
+        l.shipping !== undefined ? `$${l.shipping.toFixed(2)}` : "??";
 
       await sendDiscord([
         {
@@ -66,7 +68,7 @@ export async function GET(req: NextRequest) {
           image: l.imageUrl ? { url: l.imageUrl } : undefined,
 
           footer: {
-            text: `${card.set_name} `,
+            text: l.shipping === undefined ? `${card.set_name} - Postage not included, check listing` : `${card.set_name}`,
           },
 
           timestamp: new Date().toISOString(),
@@ -74,14 +76,7 @@ export async function GET(req: NextRequest) {
           fields: [
             {
               name: "Price",
-              value: `$${l.price}`,
-              inline: true,
-            },
-
-            {
-              name: "Shipping",
-              value: l.shipping !== undefined ? `$${l.shipping.toFixed(2)}` : "Unknown",
-
+              value: `$${l.price} + ${shippingText}`,
               inline: true,
             },
 
