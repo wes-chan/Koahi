@@ -5,6 +5,8 @@ type EbayItemSummary = {
   title: string;
   price: { value: string; currency: string };
   itemWebUrl: string;
+  image?: { imageUrl: string};
+  shippingOptions?: { shippingCost?: { value: string } } [];
 };
 
 type EbaySearchResponse = {
@@ -51,6 +53,7 @@ export async function searchEbay(query: string, maxPrice: number) {
       headers: {
         Authorization: `Bearer ${token}`,
         "X-EBAY-C-MARKETPLACE-ID": "EBAY_AU",
+        "X-EBAY-C-ENDUSERCTX": `contextualLocation=country=AU,zip=${process.env.POSTCODE}`
       },
     },
   );
@@ -65,5 +68,7 @@ export async function searchEbay(query: string, maxPrice: number) {
     title: item.title,
     price: Number(item.price.value),
     url: item.itemWebUrl,
+    imageUrl: item.image?.imageUrl,
+    shipping: item.shippingOptions?.[0]?.shippingCost ? Number(item.shippingOptions[0].shippingCost.value) : undefined,
   }));
 }

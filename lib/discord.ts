@@ -1,9 +1,9 @@
 import "server-only";
 
-export async function sendDiscord(message: string) {
+export async function sendDiscord(embeds: object[]) {
   await fetch(process.env.DISCORD_WEBHOOK!, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ content: message }),
+    body: JSON.stringify({ embeds: embeds }),
   });
 }

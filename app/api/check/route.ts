@@ -35,6 +35,11 @@ export async function GET(req: NextRequest) {
     }
 
     for (const l of listings) {
+      const target = Number(card.target_price);
+      const total = l.price + (l.shipping ?? 0);
+
+      if (total > target) continue;
+
       const { data: seen } = await supabaseAdmin
         .from("seen_listings")
         .select("item_id")
@@ -46,9 +51,54 @@ export async function GET(req: NextRequest) {
         continue;
       }
 
-      await sendDiscord(
-        `**${card.name} ${card.variation ?? ""}**\n$${l.price} (target $${card.target_price})\n${l.title}\n${l.url}`,
-      );
+      const underBy = target - total;
+
+      await sendDiscord([
+        {
+          author: {
+            name: `New Deal - ${card.set_name}`,
+          },
+
+          title: `${card.name} - ${card.variation ?? ""} `,
+          url: l.url,
+          description: l.title,
+          color: 15975999,
+          image: l.imageUrl ? { url: l.imageUrl } : undefined,
+
+          footer: {
+            text: `${card.set_name} `,
+          },
+
+          timestamp: new Date().toISOString(),
+
+          fields: [
+            {
+              name: "Price",
+              value: `$${l.price}`,
+              inline: true,
+            },
+
+            {
+              name: "Shipping",
+              value: l.shipping !== undefined ? `$${l.shipping.toFixed(2)}` : "Unknown",
+
+              inline: true,
+            },
+
+            {
+              name: "Target",
+              value: `$${card.target_price}`,
+              inline: true,
+            },
+
+            {
+              name: "Under by",
+              value: `$${underBy.toFixed(2)}`,
+              inline: true,
+            },
+          ],
+        },
+      ]);
 
       await supabaseAdmin.from("seen_listings").insert({
         item_id: l.itemId,
