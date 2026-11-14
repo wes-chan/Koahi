@@ -1,7 +1,10 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { NextRequest } from "next/server";
-import { searchEbay } from "@/lib/ebay";
+import { getToken, searchEbay } from "@/lib/ebay";
 import { sendDiscord } from "@/lib/discord";
+import { getUsageToday, saveUsage, DAILY_CAP } from "@/lib/api-usage";
+
+
 
 export async function GET(req: NextRequest) {
   /*  if (req.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`){
@@ -21,14 +24,31 @@ export async function GET(req: NextRequest) {
 
   let alerted = 0;
   let skipped = 0;
+  let apiCall = 0;
+  const { calls: usedToday } = await getUsageToday();
+  
+
+  if (usedToday >= DAILY_CAP) return Response.json({ error: "Daily API cap reached"});
+
+
+
+  const token = await getToken();
+  apiCall++;
 
   for (const card of cards) {
     if (!card.search_query || card.target_price == null) continue;
 
+    if (usedToday + apiCall + 1 > DAILY_CAP) break;
+
     let listings;
 
+    
+
+    apiCall++; 
+
+   
     try {
-      listings = await searchEbay(card.search_query, card.target_price);
+      listings = await searchEbay(token, card.search_query, card.target_price);
     } catch (error) {
       console.error("eBay search failed: ", error);
       break;
@@ -106,5 +126,7 @@ export async function GET(req: NextRequest) {
     await new Promise((r) => setTimeout(r, 1000));
   }
 
-  return Response.json({ Alert: alerted, Seen: skipped });
+  await saveUsage(usedToday + apiCall);
+
+  return Response.json({ Alert: alerted, Seen: skipped, API: apiCall });
 }

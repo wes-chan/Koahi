@@ -15,7 +15,7 @@ type EbaySearchResponse = {
 
 const bannedWord = ["custom", "proxy", "replica", "orica", "fake"];
 
-async function getToken() {
+export async function getToken() {
   const auth = Buffer.from(
     `${process.env.APP_ID}:${process.env.CERT_ID}`,
   ).toString("base64");
@@ -39,8 +39,8 @@ async function getToken() {
   return data.access_token as string;
 }
 
-export async function searchEbay(query: string, maxPrice: number) {
-  const token = await getToken();
+export async function searchEbay(token: string, query: string, maxPrice: number) {
+
   const exclude = bannedWord.map((word) => `-${word}`).join(" ");
 
   const params = new URLSearchParams({
