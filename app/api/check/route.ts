@@ -7,9 +7,9 @@ import { getUsageToday, saveUsage, DAILY_CAP } from "@/lib/api-usage";
 
 
 export async function GET(req: NextRequest) {
-  /*  if (req.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`){
+   if (req.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`){
         return Response.json({ error: 'Unauthorised'}, {status: 401})
-    }*/
+    }
 
   const { data: cards, error } = await supabaseAdmin
     .from("cards")
