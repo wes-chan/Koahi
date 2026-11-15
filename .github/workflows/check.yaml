@@ -1,8 +1,13 @@
 name: Hourly eBay check
 
 on:
+  push:
+    branches:
+      - master
+
   schedule:
     - cron: '*/5 * * * *'
+
   workflow_dispatch:
 
 jobs:
