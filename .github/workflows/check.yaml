@@ -2,7 +2,7 @@ name: Hourly eBay check
 
 on:
   schedule:
-    - cron: "23 * * * *"
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -11,5 +11,6 @@ jobs:
     steps:
       - name: Call /api/check
         run: |
-          curl -sf -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             https://koahi.vercel.app/api/check
