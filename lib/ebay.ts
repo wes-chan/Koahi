@@ -1,16 +1,26 @@
 import "server-only";
 
-type EbayItemSummary = {
+const LOCATION = encodeURIComponent(`country=AU,zip=${process.env.POSTCODE}`);
+
+type eBayItemSummary = {
   itemId: string;
   title: string;
   price: { value: string; currency: string };
   itemWebUrl: string;
   image?: { imageUrl: string };
-  shippingOptions?: { shippingCost?: { value: string } }[];
+  shippingOptions?: eBayShippingOption[];
 };
 
-type EbaySearchResponse = {
-  itemSummaries?: EbayItemSummary[];
+type eBayShippingOption = {
+  shippingCost?: { value: string };
+};
+
+type eBaySearchResponse = {
+  itemSummaries?: eBayItemSummary[];
+};
+
+type eBayItem = {
+  shippingOptions?: eBayShippingOption[];
 };
 
 const bannedWord = ["custom", "proxy", "replica", "orica", "fake"];
@@ -39,15 +49,18 @@ export async function getToken() {
   return data.access_token as string;
 }
 
-export async function searchEbay(token: string, query: string, maxPrice: number) {
-
+export async function searchEbay(
+  token: string,
+  query: string,
+  maxPrice: number,
+) {
   const exclude = bannedWord.map((word) => `-${word}`).join(" ");
 
   const params = new URLSearchParams({
     q: `${query} ${exclude}`,
     filter: `price:[..${maxPrice}],priceCurrency:AUD,buyingOptions:{FIXED_PRICE},deliveryCountry:AU,itemLocationCountry:AU`,
     sort: "newlyListed",
-    limit: "16",
+    limit: "50",
   });
 
   const res = await fetch(
@@ -56,7 +69,7 @@ export async function searchEbay(token: string, query: string, maxPrice: number)
       headers: {
         Authorization: `Bearer ${token}`,
         "X-EBAY-C-MARKETPLACE-ID": "EBAY_AU",
-        "X-EBAY-C-ENDUSERCTX": `contextualLocation=country=AU,zip=${process.env.POSTCODE}`,
+        "X-EBAY-C-ENDUSERCTX": `contextualLocation=${LOCATION}`,
       },
     },
   );
@@ -64,7 +77,7 @@ export async function searchEbay(token: string, query: string, maxPrice: number)
   if (!res.ok)
     throw new Error(`eBay search failed: ${res.status} ${await res.text()}`);
 
-  const data: EbaySearchResponse = await res.json();
+  const data: eBaySearchResponse = await res.json();
 
   return (data.itemSummaries ?? []).map((item) => ({
     itemId: item.itemId,
@@ -76,4 +89,27 @@ export async function searchEbay(token: string, query: string, maxPrice: number)
       ? Number(item.shippingOptions[0].shippingCost.value)
       : undefined,
   }));
+}
+
+export async function getShipping(token: string, itemId: string) {
+  const res = await fetch(
+    `https://api.ebay.com/buy/browse/v1/item/${encodeURIComponent(itemId)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "X-EBAY-C-MARKETPLACE-ID": "EBAY_AU",
+        "X-EBAY-C-ENDUSERCTX": `contextualLocation=${LOCATION}`,
+      },
+    },
+  );
+
+  if (!res.ok) {
+    throw new Error(`eBay getItem failed: ${res.status} ${await res.text()}`);
+  }
+
+  const data: eBayItem = await res.json();
+
+  return data.shippingOptions?.[0]?.shippingCost
+    ? Number(data.shippingOptions[0].shippingCost.value)
+    : undefined;
 }
